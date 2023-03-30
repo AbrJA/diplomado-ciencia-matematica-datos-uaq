@@ -1,0 +1,419 @@
+---
+title: "R: Lectura de datos"
+author: "Abraham Jaimes"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# Datos
+
+## Tamaño de los datos
+
+```{r}
+nrow(iris)
+ncol(iris)
+dim(iris)
+nrow(ggplot2::diamonds)
+```
+
+## Guardado de datos 
+
+```{r}
+write.csv(iris, "~/Descargas/iris.csv", row.names = FALSE)
+write.csv(ggplot2::diamonds, "~/Descargas/diamonds.csv", row.names = FALSE)
+zip("~/Descargas/iris.zip", normalizePath("~/Descargas/iris.csv"))
+```
+
+# Lectura
+
+## Base R
+
+```{r}
+read.csv("~/Descargas/iris.csv")
+```
+
+## `data.table`
+
+```{r}
+library(data.table)
+```
+
+```{r}
+fread("~/Descargas/iris.csv")
+```
+
+## Benchmark
+
+```{r}
+library(microbenchmark)
+```
+
+### Pocos datos
+
+```{r}
+microbenchmark(base = read.csv("~/Descargas/iris.csv"),
+               data_table = fread("~/Descargas/iris.csv"), 
+               times = 20)
+```
+
+### Muchos datos
+
+```{r}
+microbenchmark(base = read.csv("~/Descargas/diamonds.csv"),
+               data_table = fread("~/Descargas/diamonds.csv"),
+               times = 20)
+```
+
+### Ejemplos avanzados `fread`
+
+#### input
+
+```{r}
+fread(input = "date, count
+2022-12-27 00:00:00,     0
+2022-12-27 00:01:00,     0
+2023-01-03 00:00:00,     0
+2023-01-03 00:01:00,     0
+2023-01-10 00:00:00,     0
+2023-01-10 00:01:00,     0
+2023-01-17 00:00:00,     1
+2023-01-17 00:01:00,     0")
+```
+
+```{r}
+fread(text = "date, count
+2022-12-27 00:00:00,     0
+2022-12-27 00:01:00,     0
+2023-01-03 00:00:00,     0
+2023-01-03 00:01:00,     0
+2023-01-10 00:00:00,     0
+2023-01-10 00:01:00,     0
+2023-01-17 00:00:00,     1
+2023-01-17 00:01:00,     0")
+```
+
+```{r}
+fread("unzip -p ~/Descargas/iris.zip")
+```
+
+```{r}
+fread(cmd = "unzip -p ~/Descargas/iris.zip")
+```
+
+```{r}
+fread("~/Descargas/iris.csv")
+```
+
+```{r}
+fread(file = "~/Descargas/iris.csv")
+```
+
+#### cmd
+
+```{r}
+fread(cmd = paste("grep", "setosa", "~/Descargas/iris.csv"))
+```
+
+```{r}
+fread(cmd = "unzip -p ~/Descargas/iris.zip")
+```
+
+#### `nrows` y `select`
+
+```{r}
+fread("~/Descargas/iris.csv", nrows = 3, select = c(1, 2))
+fread("~/Descargas/iris.csv", nrows = 3, select = c("Sepal.Length", "Species"))
+```
+
+#### `skip`
+
+```{r}
+fread("~/Descargas/iris.csv", skip = 100)
+fread("~/Descargas/iris.csv", skip = "Sepal.Length")
+```
+
+## Tidyverse
+
+### readxl
+
+```{r}
+library(readxl)
+```
+
+```{r}
+datasets <- readxl_example("datasets.xlsx")
+read_excel(datasets)
+
+# Specify sheet either by position or by name
+read_excel(datasets, 2)
+read_excel(datasets, "mtcars")
+
+# Skip rows and use default column names
+read_excel(datasets, skip = 148, col_names = FALSE)
+
+# Recycle a single column type
+read_excel(datasets, col_types = "text")
+
+# Specify some col_types and guess others
+read_excel(datasets, col_types = c("text", "guess", "numeric", "guess", "guess"))
+
+# Accomodate a column with disparate types via col_type = "list"
+df <- read_excel(readxl_example("clippy.xlsx"), col_types = c("text", "list"))
+df
+df$value
+sapply(df$value, class)
+
+# Limit the number of data rows read
+read_excel(datasets, n_max = 3)
+
+# Read from an Excel range using A1 or R1C1 notation
+read_excel(datasets, range = "C1:E7")
+read_excel(datasets, range = "R1C2:R2C5")
+
+# Specify the sheet as part of the range
+read_excel(datasets, range = "mtcars!B1:D5")
+
+# Read only specific rows or columns
+read_excel(datasets, range = cell_rows(102:151), col_names = FALSE)
+read_excel(datasets, range = cell_cols("B:D"))
+
+# Get a preview of column names
+names(read_excel(readxl_example("datasets.xlsx"), n_max = 0))
+
+# exploit full .name_repair flexibility from tibble
+
+# "universal" names are unique and syntactic
+read_excel(
+  readxl_example("deaths.xlsx"),
+  range = "arts!A5:F15",
+  .name_repair = "universal"
+)
+
+# specify name repair as a built-in function
+read_excel(readxl_example("clippy.xlsx"), .name_repair = toupper)
+
+# specify name repair as a custom function
+my_custom_name_repair <- function(nms) tolower(gsub("[.]", "_", nms))
+read_excel(
+  readxl_example("datasets.xlsx"),
+  .name_repair = my_custom_name_repair
+)
+
+# specify name repair as an anonymous function
+read_excel(
+  readxl_example("datasets.xlsx"),
+  sheet = "chickwts",
+  .name_repair = ~ substr(.x, start = 1, stop = 3)
+)
+```
+
+## dplyr
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+mtcars1 <- mtcars
+```
+
+```{r}
+rownames(mtcars1)
+```
+
+```{r}
+mtcars1$modelo <- rownames(mtcars1)
+```
+
+```{r}
+mtcars2 <- mtcars
+```
+
+## mutate: Agregar columnas
+
+```{r}
+mtcars2 <- mutate(mtcars2, modelo = rownames(mtcars2), modelo_lower = tolower(modelo))
+```
+
+## pipe
+
+```{r}
+log10(exp(sin(0)))
+0 %>% sin()
+0 |> sin()
+```
+
+```{r}
+mtcars2 <- mtcars2 %>% 
+  mutate(modelo = rownames(mtcars2), modelo_lower = tolower(modelo))
+```
+
+## filter: Filtrar 
+
+```{r}
+mtcars2[mtcars2$mpg > 20, ]
+mtcars2[mtcars2$mpg > 20 & mtcars2$hp > 100, ]
+```
+
+
+```{r}
+filter(mtcars2, mpg > 20)
+```
+
+```{r}
+mtcars2 %>% filter(mpg > 20, hp > 100)
+```
+
+```{r}
+microbenchmark::microbenchmark(base = mtcars2[mtcars2$mpg > 20 & mtcars2$hp > 100, ],
+                               dplyr = mtcars2 %>% filter(mpg > 20, hp > 100))
+```
+
+```{r}
+mtcars2 %>% 
+  mutate(modelo = rownames(mtcars2)) %>%
+  filter(mpg > 20, hp > 100)
+```
+
+## select: Seleccionar columnas
+
+```{r}
+select(mtcars2, mpg, cyl)
+```
+
+```{r}
+mtcars2[, c("mpg", "cyl")]
+```
+
+```{r}
+mtcars2 %>% 
+  mutate(modelo = rownames(mtcars2)) %>%
+  filter(mpg > 20, hp > 100) %>%
+  select(mpg, cyl, hp) %>%
+  mutate(double_hp = 2 * hp) %>%
+  #mutate(double_hp = 2 * hp, hp = NULL) %>%
+  select(mpg, cyl, double_hp)
+```
+
+## arrange: Reordernar
+
+```{r}
+arrange(mtcars2, cyl, -mpg)
+```
+
+## summarise: Resumen de los datos
+
+```{r}
+mtcars2 %>% 
+  summarise(mean_hp = mean(hp), max_hp = max(hp), min_hp = min(hp))
+```
+
+```{r}
+mtcars2 %>%
+  arrange(-hp)
+```
+
+## group_by: Agrupar
+
+```{r}
+mtcars %>%
+  group_by(cyl) %>%
+  summarise(mean_hp = mean(hp), median_hp = median(hp))
+```
+
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+mtcars2 %>%
+  filter(hp >= 150) %>%
+  mutate(am = as.logical(am)) %>%
+  ggplot(aes(x = am, y = mpg)) + geom_boxplot() 
+```
+
+## data.table
+
+```{r}
+dt_mtcars <- as.data.table(mtcars)
+```
+
+### Filtrar
+
+```{r}
+filter(mtcars2, mpg > 20) # dplyr
+dt_mtcars[mpg >= 20] # data.table
+```
+
+### Agregar columnas
+
+```{r}
+mutate2 <- mutate(mtcars2, double_hp = 2 * hp) # dplyr
+dt_mtcars[, double_hp := 2 * hp] # data.table
+```
+
+### Summary
+
+```{r}
+summarise(mtcars2, mean_hp = mean(hp), max_hp = max(hp), min_hp = min(hp))
+dt_mtcars[, .(mean_hp = mean(hp), max_hp = max(hp), min_hp = min(hp))]
+```
+
+
+
+
+
+```{r}
+inicia_con <- function(x) substr(x, 1, 1)
+iris %>%
+  filter(inicia_con(Species) == "v")
+```
+
+```{r}
+iris %>%
+  filter(2 * Sepal.Length == 10.8)
+```
+
+```{r}
+iris %>%
+  select(contains("pe")) %>%
+  head()
+```
+
+
+```{r}
+dt_iris <- iris
+cols <- grep("pe", colnames(dt_iris), ignore.case = TRUE)
+dt_iris[, cols]
+```
+
+
+
+```{r}
+iris <- iris %>%
+  mutate(Species = as.character(Species))
+
+str(iris)
+
+iris %>%
+  arrange(Species)
+
+iris$Species[order(iris$Species, decreasing = TRUE)]
+
+index <- order(iris$Species, decreasing = TRUE)
+iris[index, ]
+
+iris %>%
+  slice(50)
+```

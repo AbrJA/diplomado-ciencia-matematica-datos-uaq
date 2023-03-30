@@ -1,0 +1,373 @@
+---
+title: "R: Fundamentos"
+author: "Abraham Jaimes"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+## Variables
+
+```{r}
+x <- 5
+2 * x + 3
+```
+
+```{r}
+pais <- "Colombia"
+nchar(pais)
+```
+
+```{r}
+# Limpieza de texto
+library(stringi)
+
+tolower(pais)
+stri_trans_tolower(pais)
+```
+
+## Vectores
+
+```{r}
+edad <- c(15, 19, 13, NA, 20)
+deporte <- c(TRUE, TRUE, NA, FALSE, TRUE)
+comic_fav <- c(NA, 'Superman', 'Batman', NA, 'Batman')
+```
+
+```{r}
+edad
+```
+
+```{r}
+deporte
+```
+
+```{r}
+comic_fav
+```
+
+```{r}
+edad[3]
+```
+
+```{r}
+comic_fav[c(2, 5)]
+```
+
+```{r}
+deporte[-3]
+```
+
+```{r, eval=FALSE}
+deporte[1, 2, 3] # ERROR
+deporte[c(1, 2, 3)]
+```
+
+## Matrices
+
+```{r}
+mimatriz <- matrix(data = 1:20, nrow = 4, ncol = 5, byrow = FALSE)
+```
+
+```{r}
+mimatriz
+```
+
+```{r}
+mimatriz[3, 4]
+```
+
+```{r}
+mimatriz[, 5]  # No se escribe nada antes de la coma
+```
+
+```{r}
+mimatriz[, -c(2, 4)]  # Las columnas como vector
+```
+
+```{r}
+mimatriz[-1, -3]  # Signo de menos para eliminar
+```
+
+## Arrays
+
+```{r}
+miarray <- array(data = letters[1:24], dim = c(3, 4, 2))
+```
+
+```{r}
+miarray
+```
+
+```{r}
+miarray[1, 3, 2]  # El orden es importante
+```
+
+```{r}
+miarray[, , 2]  # No se coloca nada en las primeras posiciones
+```
+
+```{r}
+miarray[, 3, ]  # No se coloca nada en las primeras posiciones
+```
+
+## Data frame
+
+```{r}
+mimarco <- data.frame(edad, deporte, comic_fav)
+```
+
+```{r}
+mimarco
+```
+
+```{r}
+mimarco$deporte  # Se recomienda si el nombre es corto
+```
+
+```{r}
+mimarco[, "deporte"]
+```
+
+```{r}
+mimarco[["deporte"]]
+```
+
+```{r}
+mimarco["deporte"]
+```
+
+```{r}
+mimarco[, "deporte", drop = FALSE]
+```
+
+```{r}
+mimarco$deporte == mimarco[, "deporte"]
+```
+
+```{r}
+mimarco[c("deporte", "edad")]
+```
+
+```{r}
+mimarco[, 1:2]
+```
+
+```{r}
+identical(mimarco$deporte, mimarco[, "deporte"])
+```
+
+```{r}
+mimarco[2:4, 1]
+```
+
+```{r}
+subset(mimarco, subset = deporte == TRUE)
+```
+
+```{r}
+mimarco[mimarco$deporte == TRUE, ]
+```
+
+```{r}
+subset(mimarco, subset = edad >= 17)
+```
+
+```{r}
+subset(mimarco, subset = edad < 20, select = c('deporte', 'comic_fav'))
+```
+
+```{r}
+subset(mimarco, subset = edad < 20 & deporte == TRUE)
+```
+
+```{r}
+library(dplyr)
+library(data.table)
+```
+
+## Listas
+
+```{r}
+set.seed(12345)
+mivector <- runif(n = 5)
+matriz2 <- matrix(data = 1:12, ncol = 6)
+milista <- list(E1 = mivector, E2 = matriz2, E3 = mimarco)
+```
+
+```{r}
+milista
+```
+
+```{r}
+milista$E2
+```
+
+```{r}
+milista[[2]]
+```
+
+```{r}
+milista[2]
+```
+
+```{r}
+class(milista$E2)
+```
+
+## Funciones
+
+```{r}
+test <- function(x) {
+  if (!is.numeric(x)) return(0)
+  return(2 * x)
+}
+```
+
+```{r}
+test("Hola")
+```
+
+```{r}
+test(1)
+```
+
+```{r}
+test <- function(x) {
+  stopifnot(is.numeric(x))
+  return(x)
+}
+```
+
+```{r}
+x <- 1
+modify <- function(x) {
+  x <- 2
+  return(x)
+}
+modify(x)
+x
+```
+
+```{r}
+x <- 1
+modify <- function(x, ...) {
+  args <- list(...)
+  return(args)
+}
+modify(x)
+x
+```
+
+```{r}
+testI <- function(x) {
+  invisible(x)
+}
+testI("Hola")
+x <- testI("Hola")
+x
+```
+
+```{r}
+a <- c(1, 3, 2)
+b <- c(2, 0, 1)  # a y b de la misma dimensión
+a + b  # Para sumar los vectores a y b miembro a miembro
+```
+
+```{r}
+library(microbenchmark)
+```
+
+```{r}
+microbenchmark(
+suma_vect = a + b, 
+suma_for = {
+  c <- NULL
+  for (i in 1:length(a)) c <- c(c, a[i] + b[i]) }, times = 100)
+```
+
+```{r}
+a <- c(1, 3, 2)
+b <- c(2, 0, 1)
+a > b
+```
+
+```{r, eval=FALSE}
+x <- c(0, 1, 2, 0)
+if (x == 0) {
+  print("Es cero")
+} else {
+  print("No es cero")
+}
+```
+
+```{r}
+ifelse(x == 0, "A", "B")
+```
+
+## FOR
+
+```{r}
+a <- c(1, 2, 3)
+b <- c(0, 1, 2)
+for (i in 1:length(a)) {
+  print(a[i] + b[i] )
+  }
+```
+
+## WHILE
+
+```{r}
+counter <- 1
+while (counter < 5) {
+  print(counter)
+  counter <- counter + 1
+}
+
+for (counter in 1:4) {
+  print(counter)
+}
+
+number <- 2
+while (number %% 2 == 0) {
+  number <- floor(runif(1, 0, 10))
+  print(number)
+}
+
+```
+
+```{r, eval=FALSE}
+while (TRUE) { 
+  print(Sys.time())
+  Sys.sleep(5)
+}
+```
+
+```{r, eval=FALSE}
+repeat {
+  print(Sys.time())
+  Sys.sleep(5)
+}
+```
+
+```{r}
+library(microbenchmark)
+
+microbenchmark( augusto = {
+  if (4560 %% 3 == 0) {
+  print(TRUE)
+  }
+  },
+  beto = 4560 %% 3 == 0)
+
+```
+
